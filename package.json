@@ -1,0 +1,12 @@
+{
+  "name": "demo-wp-masonry-block",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A block to test scripts in the iframed editors",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postpack": "tarball=$(npm list --depth 0 | sed 's/@/-/g; s/ .*/.tgz/g; 1q;'); tar -tf $tarball | sed 's/^package\\///' | zip -@r demo-wp-masonry-block; rm $tarball"
+  },
+  "author": "Mitchell Austin",
+  "license": "ISC"
+}

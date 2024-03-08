@@ -1,0 +1,19 @@
+{
+	"apiVersion": 3,
+	"name": "s8/demo-masonry",
+	"title": "Masonry",
+	"icon": "schedule",
+	"description": "Demo use of WP bundled Masonry library in a block.",
+	"category": "widgets",
+	"attributes": {},
+	"textdomain": "s8",
+	"supports": {
+		"html": true,
+		"align": true,
+    	"multiple": false
+	},
+	"style": "file:view.css",
+	"script": "masonry",
+	"editorStyle": "file:editor.css",
+	"editorScript": "file:block.js"
+}

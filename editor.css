@@ -1,0 +1,16 @@
+.wp-block-s8-demo-masonry {
+	--gap: 12px;
+}
+
+.wp-block-s8-demo-masonry > :is(img, .grid-sizer) {
+	width: calc((100% - var(--gap) * 5) / 6);
+	margin-bottom: var(--gap);
+}
+
+.wp-block-s8-demo-masonry > img.square {
+	width: calc((100% - var(--gap) * 2) / 3);
+}
+
+.wp-block-s8-demo-masonry > img.wide {
+	width: calc((100% - var(--gap) * 1) / 2);
+}
