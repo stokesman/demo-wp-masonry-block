@@ -3,7 +3,6 @@ const { registerBlockType } = wp.blocks;
 const { createElement: el, useEffect, useRef, useState } = wp.element;
 const { useBlockProps } = wp.blockEditor;
 const { useMergeRefs, useRefEffect } = wp.compose;
-const {  createReduxStore, register, useSelect } = wp.data;
 
 const BLOCK_NS = 's8/';
 const NAME = 'demo-masonry';
@@ -31,28 +30,6 @@ const getAspectClass = ratio => {
 	return mapAspects[ clamped ];
 };
 
-const store = createReduxStore( 's8-demo-masonry', {
-	reducer( state = { ready: false }, action ) {
-		const { ready } = action;
-		if ( ready == null ) return state;
-		return { ...state, ready };
-	},
-	actions: {
-		setReady: ( is ) => ( {
-			type: 'READINESS',
-			ready: is,
-		}),
-	},
-	selectors: {
-		isReady: ( { ready }) => ready,
-	}
-} );
-
-register( store );
-
-// Makes a global reference so the inline script can reference it for dispatch.
-window[BLOCK_NS]['demo-masonry-store'] = store;
-
 registerBlockType( BLOCK_NS + NAME, {
 	title,
 	icon,
@@ -61,9 +38,10 @@ registerBlockType( BLOCK_NS + NAME, {
 	supports,
 
 	edit: () => {
-		// isReady is made true when the editor’s iframe has Masonry defined.
-		// It's never set to true when there’s no iframe.
-		const isReady = useSelect((select) => select(store).isReady());
+		// To use Masonry without jQuery when the editor canvas is in the iframe, the block
+		// has to use Masonry from within the iframe but the block has to wait for it to be
+		// available and this state ensures the block rerenders then.
+		const [ isMasonryDefined, setIsMasonryDefined ] = useState( false );
 
 		const [ images, setImages ] = useState();
 
@@ -124,16 +102,19 @@ registerBlockType( BLOCK_NS + NAME, {
 			return () => sizer.disconnect();
 		}, [] );
 
+		// Pass no dependencies to ensure that each rerender the check for Masonry runs -
+		// that is, until this stops being assigned to the block ref after Masonry is defined.  
+		const refEffectUntilMasonry = useRefEffect(
+			( element ) => {
+				setIsMasonryDefined( !! element.ownerDocument.defaultView?.Masonry );
+			}
+		);
+
 		// Creates and destroys the Masonry instance as warranted.
 		const refEffectMasonry = useRefEffect( ( element ) => {
-			// console.log('masonry intance creation effect', {isReady, isCanvasReady, images});
 			const { ownerDocument: { defaultView: { Masonry } } } = element;
 
-			// When the editor is iframed `isReady` is analogous to whether or
-			// not Masonry is defined. Therefore it doesn't have to be checked
-			// here but it does have to be in the effect dependencies.
-			const isMasonryDefined = !! Masonry || isReady;
-			if ( ! isMasonryDefined || ! isCanvasReady || ! images ) return;
+			if ( ! isCanvasReady || ! images ) return;
 
 			imagesLoaded(element, () => {
 				refMasonry.current = new Masonry( element, {
@@ -146,10 +127,16 @@ registerBlockType( BLOCK_NS + NAME, {
 			});
 
 			return () => refMasonry.current?.destroy();
-		}, [ images, isCanvasReady, isReady ]);
+		}, [ images, isCanvasReady ] );
 
 		const blockProps = useBlockProps( {
-			ref: useMergeRefs( [ refCanvasReady, refEffectMasonry, refResize ] )
+			ref: useMergeRefs( [
+				refCanvasReady,
+				// Until Masonry is defined attach the effect that checks for it and afterward
+				// attach the effect that creates and destroys the block’s instance of it.
+				! isMasonryDefined ? refEffectUntilMasonry : refEffectMasonry,
+				refResize,
+			] ),
 		} );
 
 		let innards = null;

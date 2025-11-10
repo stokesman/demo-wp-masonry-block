@@ -27,14 +27,6 @@ function jsAssignments( $assignments ){
 	return ob_get_clean();
 }
 
-function jsSetIframedMasonryReady() {
-	$ns = JS_NS;
-	return <<<JS
-		if (window.frameElement !== null)
-			window.top.wp.data.dispatch(window.top[$ns]['demo-masonry-store']).setReady(true)
-	JS;
-}
-
 function get_from_dir( $relPath ){
 	ob_start();
 	include plugin_dir_path( __FILE__ ) . $relPath;
@@ -60,7 +52,4 @@ add_action( 'enqueue_block_editor_assets', function() {
 		] ),
 		'before'
 	);
-
-	// Updates the store once the masonry library is loaded in the editor’s iframe.
-	wp_add_inline_script( 'masonry', jsSetIframedMasonryReady() );
 }, 1000 );
