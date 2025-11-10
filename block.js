@@ -30,6 +30,8 @@ const getAspectClass = ratio => {
 	return mapAspects[ clamped ];
 };
 
+let isMasonryDefinedInIframe = false;
+
 registerBlockType( BLOCK_NS + NAME, {
 	title,
 	icon,
@@ -41,7 +43,7 @@ registerBlockType( BLOCK_NS + NAME, {
 		// To use Masonry without jQuery when the editor canvas is in the iframe, the block
 		// has to use Masonry from within the iframe but the block has to wait for it to be
 		// available and this state ensures the block rerenders then.
-		const [ isMasonryDefined, setIsMasonryDefined ] = useState( false );
+		const [ isMasonryDefined, setIsMasonryDefined ] = useState( isMasonryDefinedInIframe );
 
 		const [ images, setImages ] = useState();
 
@@ -107,6 +109,8 @@ registerBlockType( BLOCK_NS + NAME, {
 		const refEffectUntilMasonry = useRefEffect(
 			( element ) => {
 				setIsMasonryDefined( !! element.ownerDocument.defaultView?.Masonry );
+				// Let’s another block initialize with the same state.
+				isMasonryDefinedInIframe = true;
 			}
 		);
 
