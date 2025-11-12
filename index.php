@@ -28,9 +28,7 @@ function jsAssignments( $assignments ){
 }
 
 function get_from_dir( $relPath ){
-	ob_start();
-	include plugin_dir_path( __FILE__ ) . $relPath;
-	return ob_get_clean();
+	return file_get_contents( plugin_dir_path( __FILE__ ) . $relPath );
 }
 
 add_action( 'init', function() {
