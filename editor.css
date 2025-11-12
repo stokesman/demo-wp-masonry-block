@@ -1,16 +1,22 @@
 .wp-block-s8-demo-masonry {
-	--gap: 12px;
+	/* JS will override this with inline style */
+	--content-width: 100%;
+	box-sizing: border-box;
+}
+
+.wp-block-s8-demo-masonry > .column-gap-sizer {
+	width: var(--column-gap, 0);
 }
 
 .wp-block-s8-demo-masonry > :is(img, .grid-sizer) {
-	width: calc((100% - var(--gap) * 5) / 6);
-	margin-bottom: var(--gap);
+	width: calc((var(--content-width) - var(--column-gap, 0px) * 5) / 6);
+	margin-bottom: var(--row-gap, 0);
 }
 
 .wp-block-s8-demo-masonry > img.square {
-	width: calc((100% - var(--gap) * 2) / 3);
+	width: calc((var(--content-width) - var(--column-gap, 0px) * 2) / 3);
 }
 
 .wp-block-s8-demo-masonry > img.wide {
-	width: calc((100% - var(--gap) * 1) / 2);
+	width: calc((var(--content-width) - var(--column-gap, 0px) * 1) / 2);
 }

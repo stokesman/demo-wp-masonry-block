@@ -7,12 +7,10 @@
 
 namespace S8\WP\blocks;
 
-CONST JS_NS = '"s8/"';
-
 require plugin_dir_path( __FILE__ ) . 'block.php';
 
 function jsAssignments( $assignments ){
-	$ns = JS_NS;
+	$ns = '"s8/"';
 	ob_start();
 	?>
 	if ( ! (<?= $ns ?> in window ) ){
@@ -41,12 +39,14 @@ add_action( 'enqueue_block_editor_assets', function() {
 	if ( file_exists( $pexels_file ) ) $pexels_key = get_from_dir( 'pexels-key.php');
 	else $pexels_key = 'null';
 
+	$here = plugin_dir_url( __FILE__ );
 	// Assigns js globals for later script access.
 	wp_add_inline_script(
 		's8-demo-masonry-editor-script',
 		jsAssignments( [
 			'demo-masonry' => get_from_dir( 'block.json' ),
 			'pexelsKey' => $pexels_key,
+			'my' => "( path ) => `$here\${path}`",
 		] ),
 		'before'
 	);

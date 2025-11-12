@@ -1,7 +1,7 @@
 ( ( wp ) => {
 const { registerBlockType } = wp.blocks;
-const { createElement: el, useEffect, useRef, useState } = wp.element;
-const { useBlockProps } = wp.blockEditor;
+const { createElement: el, Fragment, useLayoutEffect, useEffect, useRef, useState } = wp.element;
+const { useBlockProps, getSpacingPresetCssVar } = wp.blockEditor;
 const { useMergeRefs, useRefEffect } = wp.compose;
 
 const BLOCK_NS = 's8/';
@@ -11,9 +11,12 @@ const {
 	title,
 	icon,
 	description,
-	attributes,
+	attributes: declaredAttributes,
 	supports
 } = window[BLOCK_NS][NAME];
+
+// `my` is just an import helper that prepends the plugin url on the passed string.
+const { my } = window[BLOCK_NS];
 
 const PEXELS_KEY = window[BLOCK_NS]['pexelsKey'];
 
@@ -32,14 +35,26 @@ const getAspectClass = ratio => {
 
 let isMasonryDefinedInIframe = false;
 
+let Inspector;
+// Dynamically imports the block inspector controls. This is done more for the
+// sake of toying with module scripts in WP than anything else. It could offer
+// some actual value in sparing resources when the block isn’t used were this
+// import put inside the block edit function but not much – it’s not big file.
+// Doing this also depends on the enqueued order of the scripts and that order
+// would get upset if this editor script were referenced in block.json and
+// enqueued in the regular manner.
+import( my( 'inspector.js' ) ).then( (module) => {
+	({ Inspector } = module)
+} );
+
 registerBlockType( BLOCK_NS + NAME, {
 	title,
 	icon,
 	description,
-	attributes,
+	attributes: declaredAttributes,
 	supports,
 
-	edit: () => {
+	edit: ( { attributes, clientId, setAttributes }) => {
 		// To use Masonry without jQuery when the editor canvas is in the iframe, the block
 		// has to use Masonry from within the iframe but the block has to wait for it to be
 		// available and this state ensures the block rerenders then.
@@ -98,11 +113,25 @@ registerBlockType( BLOCK_NS + NAME, {
 		// Tracks the size of the block to (re)layout Masonry.
 		const refResize = useRefEffect( ( node ) => {
 			const sizer = new ResizeObserver(
-				() => refMasonry.current?.layout()
-			)
-			sizer.observe( node );
+				( [ { contentBoxSize: [ { inlineSize } ] } ] ) => {
+					const masonry = refMasonry.current;
+					if ( masonry ) {
+						masonry.element.style.setProperty(
+							'--content-width',
+							`${ inlineSize }px`
+						);
+						masonry.layout();
+					}
+			} );
+			sizer.observe( node, { box: 'content-box' } );
 			return () => sizer.disconnect();
 		}, [] );
+
+		// When gap values change the masonry layout has to keep up.
+		useLayoutEffect( () => {
+			const masonry = refMasonry.current;
+			if ( masonry ) masonry.layout();
+		}, [ attributes.gap.values, attributes.gap.usePadding ] );
 
 		// Pass no dependencies to ensure that each rerender the check for Masonry runs -
 		// that is, until this stops being assigned to the block ref after Masonry is defined.  
@@ -125,7 +154,7 @@ registerBlockType( BLOCK_NS + NAME, {
 					itemSelector: 'img',
 					columnWidth: '.grid-sizer',
 					percentPosition: true,
-					gutter: 12,
+					gutter: '.column-gap-sizer',
 					resize: false, // leave it to the resize observer.
 				} );
 			});
@@ -141,6 +170,7 @@ registerBlockType( BLOCK_NS + NAME, {
 				! isMasonryDefined ? refEffectUntilMasonry : refEffectMasonry,
 				refResize,
 			] ),
+			style: getGapStyle( attributes ),
 		} );
 
 		let innards = null;
@@ -155,11 +185,30 @@ registerBlockType( BLOCK_NS + NAME, {
 				} )
 			} );
 			innards.push( el( 'div', { className: 'grid-sizer', key: 'grid-sizer' } ) );
+			innards.push( el( 'div', { className: 'column-gap-sizer', key: 'column-gap-sizer' } ) );
 		}
 
-		return el('div', blockProps, innards || 'fetchin’ fotos…' );
+		return el(Fragment, null,
+			el( Inspector, {
+				attributes,
+				clientId,
+				setAttributes,
+				declaredAttributes,
+			} ),
+			el('div', blockProps, innards || 'fetchin’ fotos…' ),
+		);
 	},
 	save: () => null
 } );
+
+const getGapStyle = ( { gap, style = {} } ) => {
+	const gapValues = gap.usePadding
+		? [ style.spacing?.padding.top, style.spacing?.padding.left ]
+		: gap.values;
+	const [ row, column ] = gapValues.map(
+		v => v === '0' ? '0px' : getSpacingPresetCssVar( v )
+	);
+	return { '--row-gap': row, '--column-gap': column }
+}
 
 } )( window.wp );

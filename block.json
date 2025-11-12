@@ -5,7 +5,15 @@
 	"icon": "schedule",
 	"description": "Demo use of WP bundled Masonry library in a block.",
 	"category": "widgets",
-	"attributes": {},
+	"attributes": {
+		"gap": {
+			"type": "object",
+			"default": {
+				"usePadding": true,
+				"values": []
+			}
+		}
+	},
 	"textdomain": "s8",
 	"supports": {
 		"html": true,
@@ -21,6 +29,5 @@
 	},
 	"style": "file:view.css",
 	"script": "masonry",
-	"editorStyle": "file:editor.css",
-	"editorScript": "file:block.js"
+	"editorStyle": "file:editor.css"
 }
