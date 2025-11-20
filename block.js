@@ -128,7 +128,8 @@ registerBlockType( BLOCK_NS + NAME, {
 						);
 						masonry.layout();
 					}
-			} );
+				}
+			);
 			sizer.observe( node, { box: 'content-box' } );
 			return () => sizer.disconnect();
 		}, [] );
