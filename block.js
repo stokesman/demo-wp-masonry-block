@@ -153,9 +153,6 @@ registerBlockType( BLOCK_NS + NAME, {
 		// Creates and destroys the Masonry instance as warranted.
 		const refEffectMasonry = useRefEffect( ( element ) => {
 			const { ownerDocument: { defaultView: { Masonry } } } = element;
-
-			if ( ! isCanvasReady || ! images ) return;
-
 			imagesLoaded(element, () => {
 				refMasonry.current = new Masonry( element, {
 					itemSelector: 'img',
@@ -172,9 +169,11 @@ registerBlockType( BLOCK_NS + NAME, {
 		const blockProps = useBlockProps( {
 			ref: useMergeRefs( [
 				refCanvasReady,
-				// Until Masonry is defined attach the effect that checks for it and afterward
-				// attach the effect that creates and destroys the block’s instance of it.
-				! isMasonryDefined ? refEffectUntilMasonry : refEffectMasonry,
+				// Until Masonry is defined attach the effect that checks for it.
+				! isMasonryDefined ? refEffectUntilMasonry : null,
+				// Only when Masonry is define, image data is set, and the canvas ready
+				// state is complete attach the effect that creates and destroys masonry.
+				isMasonryDefined && !! images && isCanvasReady ? refEffectMasonry : null,
 				refResize,
 			] ),
 			style: getGapStyle( attributes ),
