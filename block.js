@@ -134,6 +134,16 @@ registerBlockType( BLOCK_NS + NAME, {
 			return () => sizer.disconnect();
 		}, [] );
 
+		// Ref effect to (re)layout Masonry for image load events. This is done
+		// instead of using imagesLoaded because for some reason this works better.
+		const effectItemLoad = useRefEffect( ( node ) => {
+			const onLoad = () => refMasonry.current?.layout();
+			if ( ! node.complete ) {
+				node.addEventListener( 'load', onLoad );
+				return () => node.removeEventListener( 'load', onLoad );
+			}
+		}, [] );
+
 		// When gap values change the masonry layout has to keep up.
 		useLayoutEffect( () => {
 			const masonry = refMasonry.current;
@@ -153,16 +163,13 @@ registerBlockType( BLOCK_NS + NAME, {
 		// Creates and destroys the Masonry instance as warranted.
 		const refEffectMasonry = useRefEffect( ( element ) => {
 			const { ownerDocument: { defaultView: { Masonry } } } = element;
-			imagesLoaded(element, () => {
-				refMasonry.current = new Masonry( element, {
-					itemSelector: 'img',
-					columnWidth: '.grid-sizer',
-					percentPosition: true,
-					gutter: '.column-gap-sizer',
-					resize: false, // leave it to the resize observer.
-				} );
-			});
-
+			refMasonry.current = new Masonry( element, {
+				itemSelector: 'img',
+				columnWidth: '.grid-sizer',
+				percentPosition: true,
+				gutter: '.column-gap-sizer',
+				resize: false, // leave it to the resize observer.
+			} );
 			return () => refMasonry.current?.destroy();
 		}, [ images, isCanvasReady ] );
 
@@ -183,6 +190,7 @@ registerBlockType( BLOCK_NS + NAME, {
 		if ( images && isCanvasReady ) {
 			innards = images.map( ( { src, aspectRatio, style }, index ) => {
 				return el( 'img', {
+					ref: effectItemLoad,
 					src,
 					style,
 					alt: '',

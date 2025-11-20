@@ -37,7 +37,6 @@ function block_editor_scripts() {
 			'wp-element',
 			'wp-compose',
 			'pexels',
-			'imagesloaded',
 		],
 		version( 'block.js' ),
 		true
