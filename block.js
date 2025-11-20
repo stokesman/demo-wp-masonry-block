@@ -61,9 +61,15 @@ registerBlockType( BLOCK_NS + NAME, {
 		const [ isMasonryDefined, setIsMasonryDefined ] = useState( isMasonryDefinedInIframe );
 
 		const [ images, setImages ] = useState();
+		const mountedRef = useRef( false );
 
 		// Populates images from Pexels if a API key is available and otherwise some dummy images.
 		useEffect( () => {
+			// Avoid running twice in when StrictMode is active mostly to avoid making an
+			// extraneous request to the Pexels API.
+			if ( mountedRef.current ) return;
+			mountedRef.current = true;
+
 			if ( !PEXELS_KEY ) {
 				setImages( Array.from({ length: 13 }, (v, i) => {
 					const width = [300, 450, 600][ Math.floor( Math.random() * 3 ) ];
