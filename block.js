@@ -1,7 +1,8 @@
 ( ( wp ) => {
 const { registerBlockType } = wp.blocks;
-const { createElement: el, Fragment, useLayoutEffect, useEffect, useRef, useState } = wp.element;
+const { createElement: el, Fragment, useLayoutEffect, useRef, useState } = wp.element;
 const { useBlockProps, getSpacingPresetCssVar } = wp.blockEditor;
+const { Placeholder, Button } = wp.components;
 const { useMergeRefs, useRefEffect } = wp.compose;
 
 const BLOCK_NS = 's8/';
@@ -60,44 +61,8 @@ registerBlockType( BLOCK_NS + NAME, {
 		// available and this state ensures the block rerenders then.
 		const [ isMasonryDefined, setIsMasonryDefined ] = useState( isMasonryDefinedInIframe );
 
-		const [ images, setImages ] = useState();
-		const mountedRef = useRef( false );
-
-		// Populates images from Pexels if a API key is available and otherwise some dummy images.
-		useEffect( () => {
-			// Avoid running twice in when StrictMode is active mostly to avoid making an
-			// extraneous request to the Pexels API.
-			if ( mountedRef.current ) return;
-			mountedRef.current = true;
-
-			if ( !PEXELS_KEY ) {
-				setImages( Array.from({ length: 13 }, (v, i) => {
-					const width = [300, 450, 600][ Math.floor( Math.random() * 3 ) ];
-					const height = [300, 450, 600][ Math.floor( Math.random() * 3 ) ];
-					return {
-						src: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-						style: {
-							background: ['mistyrose', 'papayawhip', 'antiquewhite', 'gainsboro', 'cornsilk' ][ Math.floor( Math.random() * 5 ) ],
-							aspectRatio: `${width} / ${height}`,
-						},
-						aspectRatio: width / height
-					}
-				}))
-			} else {
-				const client = window.pexels.createClient( PEXELS_KEY );
-				const query = ['buns', 'lemon', 'curves'][ Math.floor( Math.random() * 3 ) ];
-				const page = Math.ceil(Math.random() * 9);
-				// console.log({query, page})
-				client.photos
-					.search({ query, page, per_page: 13 })
-					.then(({ photos }) => setImages(
-						photos.map( ( { src: { large }, width, height } ) => ( {
-							src: large,
-							aspectRatio: width / height
-						} ) ) )
-					);
-			}
-		}, [] );
+		const { images } = attributes;
+		const hasImages = images?.length > 0;
 
 		// Tracks the ready state of the document to hold off on creating
 		// Masonry until the document is complete.
@@ -180,14 +145,14 @@ registerBlockType( BLOCK_NS + NAME, {
 				! isMasonryDefined ? refEffectUntilMasonry : null,
 				// Only when Masonry is define, image data is set, and the canvas ready
 				// state is complete attach the effect that creates and destroys masonry.
-				isMasonryDefined && !! images && isCanvasReady ? refEffectMasonry : null,
+				isMasonryDefined && hasImages && isCanvasReady ? refEffectMasonry : null,
 				refResize,
 			] ),
 			style: getGapStyle( attributes ),
 		} );
 
 		let innards = null;
-		if ( images && isCanvasReady ) {
+		if ( hasImages && isCanvasReady ) {
 			innards = images.map( ( { src, aspectRatio, style }, index ) => {
 				return el( 'img', {
 					ref: effectItemLoad,
@@ -202,6 +167,36 @@ registerBlockType( BLOCK_NS + NAME, {
 			innards.push( el( 'div', { className: 'column-gap-sizer', key: 'column-gap-sizer' } ) );
 		}
 
+		const awaitingImages = images && images.length === 0;
+		let placeholder;
+		if ( ! innards ) {
+			if ( awaitingImages )
+				placeholder = el( 'p', null, 'fetchin’ fotos…' );
+			else
+				placeholder = el(
+					Placeholder,
+					{
+						icon,
+						label: 'Masonry',
+						instructions: PEXELS_KEY
+							? 'Let us populate some images from Pexels'
+							: 'Let us fake some images'
+					},
+					el(
+						Button,
+						{
+							onClick: async () => {
+								// When actually async set the images to an empty array immediately
+								// to signify the images are awaited.
+								if ( PEXELS_KEY ) setAttributes( { images: [] } );
+								setAttributes( { images: await getImages() } );
+							}
+						},
+						'Fetch som fotos…'
+					)
+				);
+		}
+
 		return el(Fragment, null,
 			el( Inspector, {
 				attributes,
@@ -209,11 +204,40 @@ registerBlockType( BLOCK_NS + NAME, {
 				setAttributes,
 				declaredAttributes,
 			} ),
-			el('div', blockProps, innards || 'fetchin’ fotos…' ),
+			el('div', blockProps, innards || placeholder ),
 		);
 	},
 	save: () => null
 } );
+
+const tiniestGif = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+const getImages = async () => {
+	if ( !PEXELS_KEY ) return Array.from({ length: 21 }, (v, i) => {
+		const width = [300, 450, 600][ Math.floor( Math.random() * 3 ) ];
+		const height = [300, 450, 600][ Math.floor( Math.random() * 3 ) ];
+		const background = ['whitesmoke', 'peachpuff', 'papayawhip', 'floralwhite', 'gainsboro', 'cornsilk' ][
+			Math.floor( Math.random() * 6 )
+		];
+		const aspectRatio = width / height;
+		return {
+			src: tiniestGif,
+			style: { background, aspectRatio },
+			aspectRatio,
+		}
+	});
+
+	const client = window.pexels.createClient( PEXELS_KEY );
+	const query = ['buns', 'lemon', 'curves'][ Math.floor( Math.random() * 3 ) ];
+	const page = Math.ceil(Math.random() * 9);
+	const { photos } = await client.photos.search({ query, page, per_page: 21 });
+	// console.log({query, page, photos})
+	return photos.map( ( { avg_color, src: { large }, width, height } ) => ( {
+		src: large,
+		aspectRatio: width / height,
+		style: { background: avg_color },
+	} ) )
+}
 
 const getGapStyle = ( { gap, style = {} } ) => {
 	const gapValues = gap.usePadding

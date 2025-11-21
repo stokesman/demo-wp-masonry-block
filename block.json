@@ -12,6 +12,9 @@
 				"usePadding": true,
 				"values": []
 			}
+		},
+		"images": {
+			"type": "array"
 		}
 	},
 	"textdomain": "s8",

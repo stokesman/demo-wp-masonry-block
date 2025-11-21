@@ -35,6 +35,7 @@ function block_editor_scripts() {
 			'wp-blocks',
 			'wp-block-editor',
 			'wp-element',
+			'wp-components',
 			'wp-compose',
 			'pexels',
 		],
