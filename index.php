@@ -9,20 +9,12 @@ namespace S8\WP\blocks;
 
 require plugin_dir_path( __FILE__ ) . 'block.php';
 
-function jsAssignments( $assignments ){
-	$ns = '"s8/"';
-	ob_start();
-	?>
-	if ( ! (<?= $ns ?> in window ) ){
-		window[<?= $ns ?>] = {};
-	}
-	<?php
-	foreach ($assignments as $prop_name => $jsonString ) {
-		?>
-		window[<?= $ns ?>]['<?= $prop_name ?>'] = <?= $jsonString ?>;
-		<?php
-	}
-	return ob_get_clean();
+function assign_json_data( string $global_name, array $assignments ): string {
+	$ns = "'$global_name'";
+	$value = wp_json_encode( $assignments );
+	return <<<JS
+		if ( ! ( $ns in window ) ) window[ $ns ] = $value;
+	JS;
 }
 
 function get_from_dir( $relPath ){
@@ -40,13 +32,24 @@ add_action( 'enqueue_block_editor_assets', function() {
 	else $pexels_key = 'null';
 
 	$here = plugin_dir_url( __FILE__ );
-	// Assigns js globals for later script access.
+
+	$blockType = json_decode( get_from_dir( 'block.json' ) );
+	$partialBlockType = [];
+	foreach ( $blockType as $key => $value )
+		if (
+			match ( $key ) {
+				'name', 'icon', 'title', 'description', 'attributes', 'supports' => true,
+				default => false,
+			}
+		) $partialBlockType[ $key ] = $value;
+
+	// Assigns js global for later script access.
 	wp_add_inline_script(
 		's8-demo-masonry-editor-script',
-		jsAssignments( [
-			'demo-masonry' => get_from_dir( 'block.json' ),
+		assign_json_data( 's8-demo-masonry-editor-data', [
+			'metadata' => $partialBlockType,
 			'pexelsKey' => $pexels_key,
-			'my' => "( path ) => `$here\${path}`",
+			'dir' => $here,
 		] ),
 		'before'
 	);

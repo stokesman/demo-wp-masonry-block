@@ -5,21 +5,11 @@ const { useBlockProps, getSpacingPresetCssVar } = wp.blockEditor;
 const { Placeholder, Button } = wp.components;
 const { useMergeRefs, useRefEffect } = wp.compose;
 
-const BLOCK_NS = 's8/';
-const NAME = 'demo-masonry';
-// “import” from the block json which has been assigned to the “namespace”.
 const {
-	title,
-	icon,
-	description,
-	attributes: declaredAttributes,
-	supports
-} = window[BLOCK_NS][NAME];
-
-// `my` is just an import helper that prepends the plugin url on the passed string.
-const { my } = window[BLOCK_NS];
-
-const PEXELS_KEY = window[BLOCK_NS]['pexelsKey'];
+	metadata: { name, ...metadata },
+	dir,
+	pexelsKey: PEXELS_KEY,
+} = window['s8-demo-masonry-editor-data'];
 
 const mapAspects = {
 	'0.76': 'narrow',
@@ -44,16 +34,12 @@ let Inspector;
 // Doing this also depends on the enqueued order of the scripts and that order
 // would get upset if this editor script were referenced in block.json and
 // enqueued in the regular manner.
-import( my( 'inspector.js' ) ).then( (module) => {
+import( `${dir}inspector.js` ).then( (module) => {
 	({ Inspector } = module)
 } );
 
-registerBlockType( BLOCK_NS + NAME, {
-	title,
-	icon,
-	description,
-	attributes: declaredAttributes,
-	supports,
+registerBlockType( name, {
+	...metadata,
 
 	edit: ( { attributes, clientId, setAttributes }) => {
 		// To use Masonry without jQuery when the editor canvas is in the iframe, the block
@@ -176,7 +162,7 @@ registerBlockType( BLOCK_NS + NAME, {
 				placeholder = el(
 					Placeholder,
 					{
-						icon,
+						icon: metadata.icon,
 						label: 'Masonry',
 						instructions: PEXELS_KEY
 							? 'Let us populate some images from Pexels'
@@ -202,7 +188,7 @@ registerBlockType( BLOCK_NS + NAME, {
 				attributes,
 				clientId,
 				setAttributes,
-				declaredAttributes,
+				declaredAttributes: metadata.attributes,
 			} ),
 			el('div', blockProps, innards || placeholder ),
 		);

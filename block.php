@@ -1,6 +1,6 @@
 <?php
 
-namespace s8\WP\blocks;
+namespace S8\WP\blocks;
 
 function version( $path ) {
 	WP_DEBUG
